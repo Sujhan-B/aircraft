@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aircraft Damage Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy-950: #0e1b2e;
+  --navy-800: #16283f;
+  --navy-700: #1f3552;
+  --steel-500: #4a6f94;
+  --steel-300: #8fabc7;
+  --paper: #f4f6f8;
+  --paper-dim: #e4e9ee;
+  --ink: #16283f;
+  --ink-dim: #5b6b80;
+  --green: #3f9169;
+  --amber: #d99a3a;
+  --red: #c9503f;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Topbar ---------- */
+.topbar {
+  background: var(--navy-950);
+  border-bottom: 3px solid var(--steel-500);
+}
+.topbar-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px 28px;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 14px;
+  height: 14px;
+  background: var(--amber);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  display: inline-block;
+}
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+.brand-sub {
+  color: var(--steel-300);
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+/* ---------- Layout ---------- */
+.deck {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 36px 28px 80px;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .deck { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid var(--paper-dim);
+  border-radius: 10px;
+  padding: 28px;
+}
+
+.panel-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--steel-500);
+  text-transform: uppercase;
+}
+.panel-head h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  margin: 6px 0 8px;
+  color: var(--navy-950);
+}
+.panel-desc {
+  color: var(--ink-dim);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0 0 22px;
+}
+
+/* ---------- Scan panel ---------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.dropzone {
+  display: block;
+  border: 2px dashed var(--paper-dim);
+  border-radius: 8px;
+  background: var(--paper);
+  min-height: 180px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  margin-bottom: 16px;
+}
+.dropzone:hover { border-color: var(--steel-500); background: var(--paper-dim); }
+.dropzone:focus-within { outline: 2px solid var(--steel-500); outline-offset: 2px; }
+
+.dropzone-content {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink-dim);
+  font-size: 0.92rem;
+  padding: 20px;
+  text-align: center;
+}
+.dropzone-hint { font-size: 0.78rem; color: var(--steel-500); }
+
+.preview-img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  display: block;
+}
+.hidden { display: none !important; }
+
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 12px 20px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.btn-primary {
+  background: var(--navy-950);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: var(--navy-700); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.scan-result { margin-top: 22px; }
+.scan-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.scan-result-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  text-transform: capitalize;
+  color: var(--navy-950);
+}
+.scan-result-conf {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--ink-dim);
+}
+.scan-bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--paper-dim);
+  overflow: hidden;
+}
+.scan-bar-fill {
+  height: 100%;
+  background: var(--steel-500);
+  width: 0%;
+  transition: width 0.5s ease;
+}
+.scan-note {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-dim);
+}
+
+/* ---------- Risk form ---------- */
+.risk-form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--navy-800);
+}
+
+input[type="text"], input[type="number"] {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border: 1px solid var(--paper-dim);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+input[type="text"]:focus, input[type="number"]:focus {
+  outline: 2px solid var(--steel-500);
+  outline-offset: 1px;
+  background: #fff;
+}
+
+.checkbox-row { display: flex; gap: 10px; }
+.checkbox-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--paper-dim);
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--ink-dim);
+  transition: all 0.15s ease;
+}
+.checkbox-pill:has(input:checked) {
+  background: var(--navy-950);
+  color: #fff;
+  border-color: var(--navy-950);
+}
+.checkbox-pill input { margin: 0; }
+
+.risk-form .btn { margin-top: 4px; }
+
+/* ---------- Risk results / gauges ---------- */
+.risk-results { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--paper-dim); }
+.risk-results-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+#risk-aircraft-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--navy-950);
+}
+.risk-age-tag {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--steel-500);
+  background: var(--paper);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.risk-subhead {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+  margin: 12px 0 14px;
+}
+
+.gauge-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+
+.gauge-row { display: flex; flex-direction: column; gap: 6px; }
+.gauge-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.gauge-name {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--navy-950);
+  text-transform: capitalize;
+}
+.gauge-score {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.gauge-track {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--paper-dim);
+  position: relative;
+  overflow: hidden;
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: 5px;
+  width: 0%;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gauge-fill.risk-low { background: var(--green); }
+.gauge-fill.risk-mid { background: var(--amber); }
+.gauge-fill.risk-high { background: var(--red); }
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">AeroScan</span>
+    </div>
+    <span class="brand-sub">Structural Damage &amp; Risk Assessment</span>
+  </div>
+</header>
+
+<main class="deck">
+
+  <!-- PANEL 1: Damage scan -->
+  <section class="panel" id="scan-panel">
+    <div class="panel-head">
+      <span class="panel-eyebrow">01 · Visual Inspection</span>
+      <h2>Damage Scan</h2>
+      <p class="panel-desc">Upload a photo of the surface area. The model will classify visible damage as a crack or a dent.</p>
+    </div>
+
+    <div class="scan-body">
+      <label for="image-input" class="dropzone" id="dropzone">
+        <img id="preview-img" class="preview-img hidden" alt="Uploaded surface preview">
+        <div class="dropzone-content" id="dropzone-content">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 16V4M12 4L7 9M12 4l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Click to upload an image</span>
+          <span class="dropzone-hint">JPG or PNG</span>
+        </div>
+      </label>
+      <input type="file" id="image-input" accept="image/*" class="visually-hidden">
+
+      <button id="scan-btn" class="btn btn-primary" disabled>Scan for damage</button>
+
+      <div id="scan-result" class="scan-result hidden">
+        <div class="scan-result-row">
+          <span class="scan-result-label" id="scan-label">—</span>
+          <span class="scan-result-conf" id="scan-conf">—</span>
+        </div>
+        <div class="scan-bar-track">
+          <div class="scan-bar-fill" id="scan-bar-fill"></div>
+        </div>
+        <p class="scan-note" id="scan-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PANEL 2: Risk assessment -->
+  <section class="panel" id="risk-panel">
+    <div class="panel-head">
+      <span class="panel-eyebrow">02 · Fleet History</span>
+      <h2>Part Risk Assessment</h2>
+      <p class="panel-desc">Enter the aircraft's profile to estimate which parts carry the highest structural risk.</p>
+    </div>
+
+    <form id="risk-form" class="risk-form">
+      <div class="field">
+        <label for="aircraft-model">Aircraft model</label>
+        <input type="text" id="aircraft-model" placeholder="e.g. Boeing 737-800" required>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="year-built">Year of manufacture</label>
+          <input type="number" id="year-built" placeholder="2005" min="1950" max="2026" required>
+        </div>
+        <div class="field">
+          <label for="malfunctions">Malfunctions to date</label>
+          <input type="number" id="malfunctions" placeholder="6" min="0" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Past damage types</label>
+        <div class="checkbox-row">
+          <label class="checkbox-pill">
+            <input type="checkbox" name="past-damage" value="crack">
+            <span>Crack</span>
+          </label>
+          <label class="checkbox-pill">
+            <input type="checkbox" name="past-damage" value="dent">
+            <span>Dent</span>
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Assess risk</button>
+    </form>
+
+    <div id="risk-results" class="risk-results hidden">
+      <div class="risk-results-head">
+        <span id="risk-aircraft-name">—</span>
+        <span id="risk-aircraft-age" class="risk-age-tag">—</span>
+      </div>
+      <p class="risk-subhead">Top at-risk parts</p>
+      <ul class="gauge-list" id="gauge-list"></ul>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* =========================================================
+   PART 1 — Damage scan (calls a backend model API)
+   Requires app.py (Flask) running locally on port 5000,
+   serving your trained YOLOv8 classifier at POST /predict
+   ========================================================= */
+
+const imageInput   = document.getElementById('image-input');
+const dropzone      = document.getElementById('dropzone');
+const dropzoneContent = document.getElementById('dropzone-content');
+const previewImg    = document.getElementById('preview-img');
+const scanBtn        = document.getElementById('scan-btn');
+const scanResult     = document.getElementById('scan-result');
+const scanLabel      = document.getElementById('scan-label');
+const scanConf       = document.getElementById('scan-conf');
+const scanBarFill    = document.getElementById('scan-bar-fill');
+const scanNote       = document.getElementById('scan-note');
+
+let selectedFile = null;
+
+imageInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  selectedFile = file;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    previewImg.src = ev.target.result;
+    previewImg.classList.remove('hidden');
+    dropzoneContent.classList.add('hidden');
+  };
+  reader.readAsDataURL(file);
+
+  scanBtn.disabled = false;
+  scanResult.classList.add('hidden');
+});
+
+scanBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+
+  scanBtn.disabled = true;
+  scanBtn.textContent = 'Scanning...';
+
+  try {
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+
+    const res = await fetch('http://localhost:5000/predict', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error('Server error');
+    const data = await res.json(); // expects { label: "crack"|"dent", confidence: 0.0-1.0 }
+
+    showScanResult(data.label, data.confidence);
+  } catch (err) {
+    // Backend not running or unreachable — explain plainly, no jargon.
+    scanResult.classList.remove('hidden');
+    scanLabel.textContent = 'Model unavailable';
+    scanConf.textContent = '';
+    scanBarFill.style.width = '0%';
+    scanNote.textContent =
+      'Could not reach the detection service. Make sure app.py is running (python app.py), then try again.';
+  } finally {
+    scanBtn.disabled = false;
+    scanBtn.textContent = 'Scan for damage';
+  }
+});
+
+function showScanResult(label, confidence) {
+  scanResult.classList.remove('hidden');
+  scanLabel.textContent = label;
+  scanConf.textContent = `${Math.round(confidence * 100)}% confidence`;
+  scanBarFill.style.width = `${Math.round(confidence * 100)}%`;
+  scanNote.textContent = `The uploaded image was classified as a ${label}.`;
+}
+
+
+/* =========================================================
+   PART 2 — Rule-based part risk predictor (runs fully
+   client-side, no backend needed)
+   ========================================================= */
+
+// Each part's sensitivity to age / usage, and a base risk floor.
+const PART_RISK_RULES = {
+  wing_skin:        { age: 0.8, cycle: 1.0, base: 0.2 },
+  fuselage_panel:   { age: 0.7, cycle: 0.9, base: 0.2 },
+  landing_gear:     { age: 0.5, cycle: 1.2, base: 0.3 },
+  engine_nacelle:   { age: 1.0, cycle: 0.6, base: 0.25 },
+  tail_stabilizer:  { age: 0.6, cycle: 0.7, base: 0.15 },
+  wing_stringer:    { age: 0.9, cycle: 1.1, base: 0.2 },
+  cabin_door_frame: { age: 0.5, cycle: 0.8, base: 0.2 },
+};
+
+// Which parts a given past-damage type is known to recur near.
+const DAMAGE_LINKS = {
+  crack: ['wing_skin', 'wing_stringer', 'fuselage_panel', 'tail_stabilizer'],
+  dent:  ['fuselage_panel', 'cabin_door_frame', 'engine_nacelle'],
+};
+
+const DAMAGE_BONUS_PER_LINK = 0.15;
+const MAX_DAMAGE_BONUS = 0.3; // cap: at most 2 linked damage types count
+
+/**
+ * Scores each part RELATIVE TO ITS OWN worst case, so results stay
+ * spread out across the 0–1 range instead of every part saturating
+ * to 1.0 for any older aircraft.
+ */
+function predictRisk({ yearBuilt, currentYear, malfunctions, pastDamages }) {
+  const age = Math.max(currentYear - yearBuilt, 0);
+  const ageFactor = Math.min(age / 30, 1);                          // 30 yrs = full age risk
+  const estCycles = age + malfunctions * 3;                          // proxy, no real cycle data yet
+  const cycleFactor = Math.min(estCycles / 100, 1);                  // 100 = full cycle risk
+
+  const results = Object.entries(PART_RISK_RULES).map(([part, rule]) => {
+    const linkedDamages = pastDamages.filter(d => (DAMAGE_LINKS[d] || []).includes(part));
+    const damageBonus = Math.min(linkedDamages.length * DAMAGE_BONUS_PER_LINK, MAX_DAMAGE_BONUS);
+
+    const raw = rule.base + rule.age * ageFactor + rule.cycle * cycleFactor + damageBonus;
+    const maxPossible = rule.base + rule.age + rule.cycle + MAX_DAMAGE_BONUS;
+
+    return { part, score: raw / maxPossible };
+  });
+
+  results.sort((a, b) => b.score - a.score);
+  return { age, results };
+}
+
+function riskTier(score) {
+  if (score >= 0.66) return 'risk-high';
+  if (score >= 0.4) return 'risk-mid';
+  return 'risk-low';
+}
+
+const riskForm      = document.getElementById('risk-form');
+const riskResults    = document.getElementById('risk-results');
+const gaugeList       = document.getElementById('gauge-list');
+const riskAircraftName = document.getElementById('risk-aircraft-name');
+const riskAircraftAge  = document.getElementById('risk-aircraft-age');
+
+riskForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const model = document.getElementById('aircraft-model').value.trim();
+  const yearBuilt = parseInt(document.getElementById('year-built').value, 10);
+  const malfunctions = parseInt(document.getElementById('malfunctions').value, 10);
+  const currentYear = new Date().getFullYear();
+  const pastDamages = Array.from(
+    document.querySelectorAll('input[name="past-damage"]:checked')
+  ).map(cb => cb.value);
+
+  const { age, results } = predictRisk({ yearBuilt, currentYear, malfunctions, pastDamages });
+
+  riskAircraftName.textContent = model || 'Aircraft';
+  riskAircraftAge.textContent = `${age} yrs old`;
+
+  gaugeList.innerHTML = '';
+  results.slice(0, 5).forEach(({ part, score }) => {
+    const pct = Math.round(score * 100);
+    const li = document.createElement('li');
+    li.className = 'gauge-row';
+    li.innerHTML = `
+      <div class="gauge-top">
+        <span class="gauge-name">${part.replace(/_/g, ' ')}</span>
+        <span class="gauge-score">${pct}%</span>
+      </div>
+      <div class="gauge-track">
+        <div class="gauge-fill ${riskTier(score)}" style="width:${pct}%"></div>
+      </div>
+    `;
+    gaugeList.appendChild(li);
+  });
+
+  riskResults.classList.remove('hidden');
+});
+
+</script>
+</body>
+</html>
