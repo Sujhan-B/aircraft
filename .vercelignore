@@ -1,0 +1,8 @@
+aircraft_damage_dataset_v1/
+.ipynb_checkpoints/
+runs/
+yolov8n-cls.pt
+*.pyc
+__pycache__/
+.vercel/
+node_modules/
